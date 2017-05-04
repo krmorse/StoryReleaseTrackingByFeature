@@ -60,6 +60,10 @@ Ext.define('CustomApp', {
             };
         }), function(column) { return column.iterations[0].get('StartDate'); });
 
+        if (this.down('rallygridboard')) {
+            this.down('rallygridboard').destroy();
+        }
+        
         this.add({
             xtype: 'rallygridboard',
             context: context,
