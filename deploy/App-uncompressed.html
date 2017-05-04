@@ -7,10 +7,7 @@
 
     <script type="text/javascript">
         Rally.onReady(function () {
-                /* global Ext */
-/* global Rally */
-
-Ext.define('IterationColumn', {
+                Ext.define('IterationColumn', {
     extend: 'Rally.ui.cardboard.Column',
     alias: 'widget.iterationcolumn',
 
@@ -34,15 +31,15 @@ Ext.define('IterationColumn', {
     getStoreFilter: function() {
         return [
             {
-                property: 'UserStories.Iteration.Name',
+                property: 'Iteration.Name',
                 value: this._getTimeboxRecord().get('Name')
             },
             {
-                property: 'UserStories.Iteration.StartDate',
+                property: 'Iteration.StartDate',
                 value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('StartDate'))
             },
             {
-                property: 'UserStories.Iteration.EndDate',
+                property: 'Iteration.EndDate',
                 value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('EndDate'))
             }
         ];
@@ -56,15 +53,19 @@ Ext.define('IterationColumn', {
         this.getColumnHeaderCell().addCls(cls);
     },
 
-    isMatchingRecord: function() {
-        return true;
+    isMatchingRecord: function(record) {
+        var likeIteration = this.iterations[0].raw,
+            recordIteration = record.get('Iteration');
+        
+        return likeIteration.StartDate === recordIteration.StartDate &&
+            likeIteration.EndDate === recordIteration.EndDate &&
+            likeIteration.Name === recordIteration.Name;
     },
 
     drawHeader: function() {
         this.callParent(arguments);
         this._addTimeboxDates();
     },
-
 
     _addTimeboxDates: function() {
         this.getColumnHeader().add({
@@ -132,6 +133,7 @@ Ext.define('IterationColumn', {
                     direction: 'ASC'
                 }
             ],
+            fetch: ['Name', 'StartDate', 'EndDate'],
             pageSize: 2000,
             limit: Infinity
         }).load().then({
@@ -146,8 +148,15 @@ Ext.define('IterationColumn', {
                 Rally.util.DateTime.formatDate(record.get('StartDate')) + '-' +
                 Rally.util.DateTime.formatDate(record.get('EndDate'));
             }),
-            modelNames = ['portfolioitem/feature'],
+            modelNames = ['hierarchicalrequirement'],
             context = this.getContext();
+
+        var columns = _.sortBy(_.map(iterations, function(likeIterations) {
+            return {
+                xtype: 'iterationcolumn',
+                iterations: likeIterations
+            };
+        }), function(column) { return column.iterations[0].get('StartDate'); });
 
         this.add({
             xtype: 'rallygridboard',
@@ -197,23 +206,14 @@ Ext.define('IterationColumn', {
             ],
             cardBoardConfig: {
                 readOnly: true,
-                cardConfig: {
-                    editable: false,
-                    showPlusIcon: false,
-                    showColorIcon: false,
-                    showBlockedIcon: false,
-                    showReadyIcon: false
-                },
                 rowConfig: {
                     field: 'Project'
                 },
-                columns: _.map(iterations, function(likeIterations) {
-                    return {
-                        xtype: 'iterationcolumn',
-                        iterations: likeIterations
-                    };
-                }),
-                attribute: 'Release'
+                columns: columns,
+                attribute: 'Iteration'
+            },
+            storeConfig: {
+               fetch: ['Iteration', 'Name', 'StartDate', 'EndDate'] 
             }
         });
     }

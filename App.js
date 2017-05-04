@@ -35,6 +35,7 @@ Ext.define('CustomApp', {
                     direction: 'ASC'
                 }
             ],
+            fetch: ['Name', 'StartDate', 'EndDate'],
             pageSize: 2000,
             limit: Infinity
         }).load().then({
@@ -49,8 +50,15 @@ Ext.define('CustomApp', {
                 Rally.util.DateTime.formatDate(record.get('StartDate')) + '-' +
                 Rally.util.DateTime.formatDate(record.get('EndDate'));
             }),
-            modelNames = ['portfolioitem/feature'],
+            modelNames = ['hierarchicalrequirement'],
             context = this.getContext();
+
+        var columns = _.sortBy(_.map(iterations, function(likeIterations) {
+            return {
+                xtype: 'iterationcolumn',
+                iterations: likeIterations
+            };
+        }), function(column) { return column.iterations[0].get('StartDate'); });
 
         this.add({
             xtype: 'rallygridboard',
@@ -100,23 +108,14 @@ Ext.define('CustomApp', {
             ],
             cardBoardConfig: {
                 readOnly: true,
-                cardConfig: {
-                    editable: false,
-                    showPlusIcon: false,
-                    showColorIcon: false,
-                    showBlockedIcon: false,
-                    showReadyIcon: false
-                },
                 rowConfig: {
                     field: 'Project'
                 },
-                columns: _.map(iterations, function(likeIterations) {
-                    return {
-                        xtype: 'iterationcolumn',
-                        iterations: likeIterations
-                    };
-                }),
-                attribute: 'Release'
+                columns: columns,
+                attribute: 'Iteration'
+            },
+            storeConfig: {
+               fetch: ['Iteration', 'Name', 'StartDate', 'EndDate'] 
             }
         });
     }

@@ -1,6 +1,3 @@
-/* global Ext */
-/* global Rally */
-
 Ext.define('IterationColumn', {
     extend: 'Rally.ui.cardboard.Column',
     alias: 'widget.iterationcolumn',
@@ -25,15 +22,15 @@ Ext.define('IterationColumn', {
     getStoreFilter: function() {
         return [
             {
-                property: 'UserStories.Iteration.Name',
+                property: 'Iteration.Name',
                 value: this._getTimeboxRecord().get('Name')
             },
             {
-                property: 'UserStories.Iteration.StartDate',
+                property: 'Iteration.StartDate',
                 value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('StartDate'))
             },
             {
-                property: 'UserStories.Iteration.EndDate',
+                property: 'Iteration.EndDate',
                 value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('EndDate'))
             }
         ];
@@ -47,15 +44,19 @@ Ext.define('IterationColumn', {
         this.getColumnHeaderCell().addCls(cls);
     },
 
-    isMatchingRecord: function() {
-        return true;
+    isMatchingRecord: function(record) {
+        var likeIteration = this.iterations[0].raw,
+            recordIteration = record.get('Iteration');
+        
+        return likeIteration.StartDate === recordIteration.StartDate &&
+            likeIteration.EndDate === recordIteration.EndDate &&
+            likeIteration.Name === recordIteration.Name;
     },
 
     drawHeader: function() {
         this.callParent(arguments);
         this._addTimeboxDates();
     },
-
 
     _addTimeboxDates: function() {
         this.getColumnHeader().add({
