@@ -63,7 +63,7 @@ Ext.define('CustomApp', {
         if (this.down('rallygridboard')) {
             this.down('rallygridboard').destroy();
         }
-        
+
         this.add({
             xtype: 'rallygridboard',
             context: context,
@@ -111,7 +111,10 @@ Ext.define('CustomApp', {
                 }
             ],
             cardBoardConfig: {
-                plugins: [{ptype:'rallyfixedheadercardboard'}],
+                plugins: [
+                    { ptype: 'rallyfixedheadercardboard'},
+                    { ptype: 'rallycardboardprinting' }
+                ],
                 readOnly: true,
                 rowConfig: {
                     field: 'Project'
