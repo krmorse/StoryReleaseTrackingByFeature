@@ -107,6 +107,7 @@ Ext.define('CustomApp', {
                 }
             ],
             cardBoardConfig: {
+                plugins: [{ptype:'rallyfixedheadercardboard'}],
                 readOnly: true,
                 rowConfig: {
                     field: 'Project'
