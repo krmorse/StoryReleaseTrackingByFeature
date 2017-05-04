@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>StoryReleaseTracking</title>
+
+    <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function () {
+                /* global Ext */
+/* global Rally */
+
+Ext.define('IterationColumn', {
+    extend: 'Rally.ui.cardboard.Column',
+    alias: 'widget.iterationcolumn',
+
+    config: {
+        iterations: []
+    },
+
+    constructor: function(config) {
+        this.mergeConfig(config);
+        this.config = Ext.merge({
+            columnHeaderConfig: {
+                record: this._getTimeboxRecord(),
+                fieldToDisplay: 'Name',
+                editable: false
+            }
+        }, this.config);
+        this.config.value = Rally.util.Ref.getRelativeUri(this._getTimeboxRecord());
+        this.callParent([this.config]);
+    },
+
+    getStoreFilter: function() {
+        return [
+            {
+                property: 'UserStories.Iteration.Name',
+                value: this._getTimeboxRecord().get('Name')
+            },
+            {
+                property: 'UserStories.Iteration.StartDate',
+                value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('StartDate'))
+            },
+            {
+                property: 'UserStories.Iteration.EndDate',
+                value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('EndDate'))
+            }
+        ];
+    },
+
+    afterRender: function() {
+        this.callParent(arguments);
+
+        var cls = 'planning-column';
+        _.invoke(this.getContentCellContainers(), 'addCls', cls);
+        this.getColumnHeaderCell().addCls(cls);
+    },
+
+    isMatchingRecord: function() {
+        return true;
+    },
+
+    drawHeader: function() {
+        this.callParent(arguments);
+        this._addTimeboxDates();
+    },
+
+
+    _addTimeboxDates: function() {
+        this.getColumnHeader().add({
+            xtype: 'component',
+            html: this.getTimeboxDatesTpl().apply(this.getTimeboxDatesTplData())
+        });
+    },
+
+    getTimeboxDatesTpl: function() {
+        this.timeboxDatesTpl = this.timeboxDatesTpl || Ext.create('Ext.XTemplate',
+            '<div class="timeboxDates">{formattedStartDate} - {formattedEndDate}</div>');
+
+        return this.timeboxDatesTpl;
+    },
+
+    getTimeboxDatesTplData: function() {
+        return {
+            formattedStartDate: this._getFormattedDate('StartDate'),
+            formattedEndDate: this._getFormattedDate('EndDate')
+        };
+    },
+
+    _getFormattedDate: function(fieldName) {
+        return Rally.util.DateTime.formatDate(this._getTimeboxRecord().get(fieldName), false);
+    },
+
+    _getTimeboxRecord: function() {
+        return this.iterations[0];
+    }
+});
+                Ext.define('CustomApp', {
+    extend: 'Rally.app.TimeboxScopedApp',
+    componentCls: 'app',
+    requires: [
+        'IterationColumn'
+    ],
+
+    scopeType: 'release',
+    supportsUnscheduled: false,
+
+    onScopeChange: function() {
+        var context = this.getContext(),
+            release = context.getTimeboxScope().getRecord(),
+            startDate = release.get('ReleaseStartDate'),
+            endDate = release.get('ReleaseDate');
+
+        Ext.create('Rally.data.wsapi.Store', {
+            model: 'Iteration',
+            context: context.getDataContext(),
+            filters: [
+                {
+                    property: 'StartDate',
+                    operator: '>=',
+                    value: Rally.util.DateTime.toIsoString(startDate)
+                },
+                {
+                    property: 'EndDate',
+                    operator: '<=',
+                    value: Rally.util.DateTime.toIsoString(endDate)
+                }
+            ],
+            sorters: [
+                {
+                    propety: 'StartDate',
+                    direction: 'ASC'
+                }
+            ],
+            pageSize: 2000,
+            limit: Infinity
+        }).load().then({
+            success: this._onIterationsLoaded,
+            scope: this
+        });
+    },
+
+    _onIterationsLoaded: function(records) {
+        var iterations = _.groupBy(records, function(record) {
+            return record.get('Name') + '-' + 
+                Rally.util.DateTime.formatDate(record.get('StartDate')) + '-' +
+                Rally.util.DateTime.formatDate(record.get('EndDate'));
+            }),
+            modelNames = ['portfolioitem/feature'],
+            context = this.getContext();
+
+        this.add({
+            xtype: 'rallygridboard',
+            context: context,
+            modelNames: modelNames,
+            toggleState: 'board',
+            stateful: false,
+            plugins: [
+                {
+                    ptype: 'rallygridboardinlinefiltercontrol',
+                    inlineFilterButtonConfig: {
+                        stateful: true,
+                        stateId: context.getScopedStateId('filters'),
+                        modelNames: modelNames,
+                        inlineFilterPanelConfig: {
+                            quickFilterPanelConfig: {
+                                defaultFields: [
+                                    'ArtifactSearch'
+                                ]
+                            }
+                        }
+                    }
+                },
+                {
+                    ptype: 'rallygridboardfieldpicker',
+                    headerPosition: 'left',
+                    modelNames: modelNames,
+                    stateful: true,
+                    stateId: context.getScopedStateId('columns-example')
+                },
+                {
+                    ptype: 'rallygridboardactionsmenu',
+                        menuItems: [
+                            {
+                                text: 'Print...',
+                                handler: function () {
+                                    this.down('rallygridboard').getGridOrBoard().openPrintPage({title: 'Program Board'});
+                                },
+                                scope: this
+                            }
+                            //
+                        ],
+                        buttonConfig: {
+                            iconCls: 'icon-export'
+                        }
+                }
+            ],
+            cardBoardConfig: {
+                readOnly: true,
+                cardConfig: {
+                    editable: false,
+                    showPlusIcon: false,
+                    showColorIcon: false,
+                    showBlockedIcon: false,
+                    showReadyIcon: false
+                },
+                rowConfig: {
+                    field: 'Project'
+                },
+                columns: _.map(iterations, function(likeIterations) {
+                    return {
+                        xtype: 'iterationcolumn',
+                        iterations: likeIterations
+                    };
+                }),
+                attribute: 'Release'
+            }
+        });
+    }
+});
+
+
+            Rally.launchApp('CustomApp', {
+                name:"StoryReleaseTracking",
+	            parentRepos:""
+            });
+
+        });
+    </script>
+
+
+
+    <style type="text/css">
+        .app {
+  /* Add app styles here */
+}
+
+    </style>
+</head>
+<body>
+</body>
+</html>
