@@ -2,9 +2,7 @@ Ext.define('IterationColumn', {
     extend: 'Rally.ui.cardboard.Column',
     alias: 'widget.iterationcolumn',
 
-    config: {
-        iterations: []
-    },
+    plugins: ['rallycardboardcollapsiblecolumns'],
 
     constructor: function(config) {
         this.mergeConfig(config);
