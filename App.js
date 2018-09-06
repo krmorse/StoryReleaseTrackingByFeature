@@ -64,6 +64,7 @@ Ext.define('CustomApp', {
             this.down('rallygridboard').destroy();
         }
 
+        var whiteListFields = ['Milestones', 'Tags'];
         this.add({
             xtype: 'rallygridboard',
             context: context,
@@ -81,7 +82,17 @@ Ext.define('CustomApp', {
                             quickFilterPanelConfig: {
                                 defaultFields: [
                                     'ArtifactSearch'
-                                ]
+                                ],
+                                addQuickFilterConfig: {
+                                    whiteListFields: whiteListFields
+                                }
+                            },
+                            advancedFilterPanelConfig: {
+                                advancedFilterRowsConfig: {
+                                    propertyFieldConfig: {
+                                        whiteListFields: whiteListFields
+                                    }
+                                }
                             }
                         }
                     }
