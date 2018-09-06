@@ -197,6 +197,7 @@
             this.down('rallygridboard').destroy();
         }
 
+        var whiteListFields = ['Milestones', 'Tags'];
         this.add({
             xtype: 'rallygridboard',
             context: context,
@@ -214,7 +215,17 @@
                             quickFilterPanelConfig: {
                                 defaultFields: [
                                     'ArtifactSearch'
-                                ]
+                                ],
+                                addQuickFilterConfig: {
+                                    whiteListFields: whiteListFields
+                                }
+                            },
+                            advancedFilterPanelConfig: {
+                                advancedFilterRowsConfig: {
+                                    propertyFieldConfig: {
+                                        whiteListFields: whiteListFields
+                                    }
+                                }
                             }
                         }
                     }
@@ -265,7 +276,8 @@
 
             Rally.launchApp('CustomApp', {
                 name:"StoryReleaseTracking",
-	            parentRepos:""
+                parentRepos:"",
+                version:"0.1.3"
             });
 
         });
