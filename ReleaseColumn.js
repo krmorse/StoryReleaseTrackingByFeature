@@ -56,7 +56,7 @@ Ext.define('ReleaseColumn', {
                 likeRelease.ReleaseDate === recordRelease.ReleaseDate &&
                 likeRelease.Name === recordRelease.Name;
         } else {
-            return record.Release === null &&
+            return record.raw.Release === null &&
                 this._getTimeboxRecord() === null;
         }
     },
