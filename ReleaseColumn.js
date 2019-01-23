@@ -18,20 +18,25 @@ Ext.define('ReleaseColumn', {
     },
 
     getStoreFilter: function() {
-        return [
-            {
-                property: 'Release.Name',
-                value: this._getTimeboxRecord().get('Name')
-            },
-            {
-                property: 'Release.ReleaseStartDate',
-                value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('ReleaseStartDate'))
-            },
-            {
-                property: 'Release.ReleaseDate',
-                value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('ReleaseDate'))
-            }
-        ];
+        var record = this._getTimeboxRecord();
+        if (record === null) {
+            return this.callParent(arguments);
+        } else {
+            return [
+                {
+                    property: 'Release.Name',
+                    value: this._getTimeboxRecord().get('Name')
+                },
+                {
+                    property: 'Release.ReleaseStartDate',
+                    value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('ReleaseStartDate'))
+                },
+                {
+                    property: 'Release.ReleaseDate',
+                    value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('ReleaseDate'))
+                }
+            ];
+        }
     },
 
     afterRender: function() {
@@ -43,17 +48,30 @@ Ext.define('ReleaseColumn', {
     },
 
     isMatchingRecord: function(record) {
-        var likeRelease = this.releases[0].raw,
-            recordRelease = record.get('Release');
-        
-        return likeRelease.ReleaseStartDate === recordRelease.ReleaseStartDate &&
-            likeRelease.ReleaseDate === recordRelease.ReleaseDate &&
-            likeRelease.Name === recordRelease.Name;
+        if (this._getTimeboxRecord()) {
+            var likeRelease = this.releases[0].raw,
+                recordRelease = record.get('Release');
+            
+            return likeRelease.ReleaseStartDate === recordRelease.ReleaseStartDate &&
+                likeRelease.ReleaseDate === recordRelease.ReleaseDate &&
+                likeRelease.Name === recordRelease.Name;
+        } else {
+            return record.Release === null &&
+                this._getTimeboxRecord() === null;
+        }
     },
 
     drawHeader: function() {
         this.callParent(arguments);
-        this._addTimeboxDates();
+
+        if (this._getTimeboxRecord()) {
+            this._addTimeboxDates();
+        } else {
+            this.getColumnHeader().add({
+                xtype: 'component',
+                html: 'Unscheduled'
+            });
+        }
     },
 
     _addTimeboxDates: function() {
@@ -83,5 +101,12 @@ Ext.define('ReleaseColumn', {
 
     _getTimeboxRecord: function() {
         return this.releases[0];
+    },
+
+    _getTimeboxScope: function() {
+        return Ext.create('Rally.app.TimeboxScope', {
+            record: this._getTimeboxRecord(),
+            type: 'release'
+        });
     }
 });

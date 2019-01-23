@@ -52,6 +52,10 @@ Ext.define('CustomApp', {
                 releases: likeReleases
             };
         }), function(column) { return column.releases[0].get('ReleaseStartDate'); });
+        columns.push({
+            xtype: 'releasecolumn',
+            releases: [null]
+        });
 
         if (this.down('rallygridboard')) {
             this.down('rallygridboard').destroy();
