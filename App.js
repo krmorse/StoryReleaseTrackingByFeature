@@ -1,64 +1,57 @@
 Ext.define('CustomApp', {
-    extend: 'Rally.app.TimeboxScopedApp',
+    extend: 'Rally.app.App',
     componentCls: 'app',
     requires: [
-        'IterationColumn'
+        'ReleaseColumn'
     ],
 
-    scopeType: 'release',
-    supportsUnscheduled: false,
+    getSettingsFields: function() {
+        return [ { type: 'query' } ];
+    },
 
-    onScopeChange: function() {
-        var context = this.getContext(),
-            release = context.getTimeboxScope().getRecord(),
-            startDate = release.get('ReleaseStartDate'),
-            endDate = release.get('ReleaseDate');
+    launch: function() {
+        var context = this.getContext();
 
         Ext.create('Rally.data.wsapi.Store', {
-            model: 'Iteration',
+            model: 'Release',
             context: context.getDataContext(),
             filters: [
                 {
-                    property: 'StartDate',
+                    property: 'ReleaseDate',
                     operator: '>=',
-                    value: Rally.util.DateTime.toIsoString(startDate)
-                },
-                {
-                    property: 'EndDate',
-                    operator: '<=',
-                    value: Rally.util.DateTime.toIsoString(endDate)
+                    value: 'today'
                 }
             ],
             sorters: [
                 {
-                    propety: 'StartDate',
+                    propety: 'ReleaseStartDate',
                     direction: 'ASC'
                 }
             ],
-            fetch: ['Name', 'StartDate', 'EndDate'],
+            fetch: ['Name', 'ReleaseStartDate', 'ReleaseDate'],
             pageSize: 2000,
             limit: Infinity
         }).load().then({
-            success: this._onIterationsLoaded,
+            success: this._onReleasesLoaded,
             scope: this
         });
     },
 
-    _onIterationsLoaded: function(records) {
-        var iterations = _.groupBy(records, function(record) {
+    _onReleasesLoaded: function(records) {
+        var releases = _.groupBy(records, function(record) {
             return record.get('Name') + '-' + 
-                Rally.util.DateTime.formatDate(record.get('StartDate')) + '-' +
-                Rally.util.DateTime.formatDate(record.get('EndDate'));
+                Rally.util.DateTime.formatDate(record.get('ReleaseStartDate')) + '-' +
+                Rally.util.DateTime.formatDate(record.get('ReleaseDate'));
             }),
             modelNames = ['hierarchicalrequirement'],
             context = this.getContext();
 
-        var columns = _.sortBy(_.map(iterations, function(likeIterations) {
+        var columns = _.sortBy(_.map(releases, function(likeReleases) {
             return {
-                xtype: 'iterationcolumn',
-                iterations: likeIterations
+                xtype: 'releasecolumn',
+                releases: likeReleases
             };
-        }), function(column) { return column.iterations[0].get('StartDate'); });
+        }), function(column) { return column.releases[0].get('ReleaseStartDate'); });
 
         if (this.down('rallygridboard')) {
             this.down('rallygridboard').destroy();
@@ -128,14 +121,23 @@ Ext.define('CustomApp', {
                 ],
                 readOnly: true,
                 rowConfig: {
-                    field: 'Project'
+                    field: 'Feature'
                 },
                 columns: columns,
-                attribute: 'Iteration'
+                attribute: 'Release'
             },
             storeConfig: {
-               fetch: ['Iteration', 'Name', 'StartDate', 'EndDate'] 
+               fetch: ['Release', 'Name', 'ReleaseStartDate', 'ReleaseDate'],
+               filters: this._getFilters()
             }
         });
+    },
+
+    _getFilters: function() {
+        var queries = [];
+        if (this.getSetting('query')) {
+            queries.push(Rally.data.QueryFilter.fromQueryString(this.getSetting('query')));
+        }
+        return queries;
     }
 });

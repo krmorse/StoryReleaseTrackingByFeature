@@ -1,6 +1,6 @@
-Ext.define('IterationColumn', {
+Ext.define('ReleaseColumn', {
     extend: 'Rally.ui.cardboard.Column',
-    alias: 'widget.iterationcolumn',
+    alias: 'widget.releasecolumn',
 
     plugins: ['rallycardboardcollapsiblecolumns'],
 
@@ -20,16 +20,16 @@ Ext.define('IterationColumn', {
     getStoreFilter: function() {
         return [
             {
-                property: 'Iteration.Name',
+                property: 'Release.Name',
                 value: this._getTimeboxRecord().get('Name')
             },
             {
-                property: 'Iteration.StartDate',
-                value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('StartDate'))
+                property: 'Release.ReleaseStartDate',
+                value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('ReleaseStartDate'))
             },
             {
-                property: 'Iteration.EndDate',
-                value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('EndDate'))
+                property: 'Release.ReleaseDate',
+                value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('ReleaseDate'))
             }
         ];
     },
@@ -43,12 +43,12 @@ Ext.define('IterationColumn', {
     },
 
     isMatchingRecord: function(record) {
-        var likeIteration = this.iterations[0].raw,
-            recordIteration = record.get('Iteration');
+        var likeRelease = this.releases[0].raw,
+            recordRelease = record.get('Release');
         
-        return likeIteration.StartDate === recordIteration.StartDate &&
-            likeIteration.EndDate === recordIteration.EndDate &&
-            likeIteration.Name === recordIteration.Name;
+        return likeRelease.ReleaseStartDate === recordRelease.ReleaseStartDate &&
+            likeRelease.ReleaseDate === recordRelease.ReleaseDate &&
+            likeRelease.Name === recordRelease.Name;
     },
 
     drawHeader: function() {
@@ -72,8 +72,8 @@ Ext.define('IterationColumn', {
 
     getTimeboxDatesTplData: function() {
         return {
-            formattedStartDate: this._getFormattedDate('StartDate'),
-            formattedEndDate: this._getFormattedDate('EndDate')
+            formattedStartDate: this._getFormattedDate('ReleaseStartDate'),
+            formattedEndDate: this._getFormattedDate('ReleaseDate')
         };
     },
 
@@ -82,6 +82,6 @@ Ext.define('IterationColumn', {
     },
 
     _getTimeboxRecord: function() {
-        return this.iterations[0];
+        return this.releases[0];
     }
 });

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>StoryReleaseTracking</title>
+    <title>StoryReleaseTrackingByFeature</title>
 
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
 
     <script type="text/javascript">
         Rally.onReady(function () {
-                Ext.define('IterationColumn', {
+                Ext.define('ReleaseColumn', {
     extend: 'Rally.ui.cardboard.Column',
-    alias: 'widget.iterationcolumn',
+    alias: 'widget.releasecolumn',
 
     plugins: ['rallycardboardcollapsiblecolumns'],
 
@@ -29,16 +29,16 @@
     getStoreFilter: function() {
         return [
             {
-                property: 'Iteration.Name',
+                property: 'Release.Name',
                 value: this._getTimeboxRecord().get('Name')
             },
             {
-                property: 'Iteration.StartDate',
-                value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('StartDate'))
+                property: 'Release.ReleaseStartDate',
+                value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('ReleaseStartDate'))
             },
             {
-                property: 'Iteration.EndDate',
-                value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('EndDate'))
+                property: 'Release.ReleaseDate',
+                value: Rally.util.DateTime.toIsoString(this._getTimeboxRecord().get('ReleaseDate'))
             }
         ];
     },
@@ -52,12 +52,12 @@
     },
 
     isMatchingRecord: function(record) {
-        var likeIteration = this.iterations[0].raw,
-            recordIteration = record.get('Iteration');
+        var likeRelease = this.releases[0].raw,
+            recordRelease = record.get('Release');
         
-        return likeIteration.StartDate === recordIteration.StartDate &&
-            likeIteration.EndDate === recordIteration.EndDate &&
-            likeIteration.Name === recordIteration.Name;
+        return likeRelease.ReleaseStartDate === recordRelease.ReleaseStartDate &&
+            likeRelease.ReleaseDate === recordRelease.ReleaseDate &&
+            likeRelease.Name === recordRelease.Name;
     },
 
     drawHeader: function() {
@@ -81,8 +81,8 @@
 
     getTimeboxDatesTplData: function() {
         return {
-            formattedStartDate: this._getFormattedDate('StartDate'),
-            formattedEndDate: this._getFormattedDate('EndDate')
+            formattedStartDate: this._getFormattedDate('ReleaseStartDate'),
+            formattedEndDate: this._getFormattedDate('ReleaseDate')
         };
     },
 
@@ -91,7 +91,7 @@
     },
 
     _getTimeboxRecord: function() {
-        return this.iterations[0];
+        return this.releases[0];
     }
 });
                 Ext.define('Rally.ui.cardboard.plugin.CollapsibleColumnsFix', {
@@ -132,66 +132,59 @@
     }
 });
                 Ext.define('CustomApp', {
-    extend: 'Rally.app.TimeboxScopedApp',
+    extend: 'Rally.app.App',
     componentCls: 'app',
     requires: [
-        'IterationColumn'
+        'ReleaseColumn'
     ],
 
-    scopeType: 'release',
-    supportsUnscheduled: false,
+    getSettingsFields: function() {
+        return [ { type: 'query' } ];
+    },
 
-    onScopeChange: function() {
-        var context = this.getContext(),
-            release = context.getTimeboxScope().getRecord(),
-            startDate = release.get('ReleaseStartDate'),
-            endDate = release.get('ReleaseDate');
+    launch: function() {
+        var context = this.getContext();
 
         Ext.create('Rally.data.wsapi.Store', {
-            model: 'Iteration',
+            model: 'Release',
             context: context.getDataContext(),
             filters: [
                 {
-                    property: 'StartDate',
+                    property: 'ReleaseDate',
                     operator: '>=',
-                    value: Rally.util.DateTime.toIsoString(startDate)
-                },
-                {
-                    property: 'EndDate',
-                    operator: '<=',
-                    value: Rally.util.DateTime.toIsoString(endDate)
+                    value: 'today'
                 }
             ],
             sorters: [
                 {
-                    propety: 'StartDate',
+                    propety: 'ReleaseStartDate',
                     direction: 'ASC'
                 }
             ],
-            fetch: ['Name', 'StartDate', 'EndDate'],
+            fetch: ['Name', 'ReleaseStartDate', 'ReleaseDate'],
             pageSize: 2000,
             limit: Infinity
         }).load().then({
-            success: this._onIterationsLoaded,
+            success: this._onReleasesLoaded,
             scope: this
         });
     },
 
-    _onIterationsLoaded: function(records) {
-        var iterations = _.groupBy(records, function(record) {
+    _onReleasesLoaded: function(records) {
+        var releases = _.groupBy(records, function(record) {
             return record.get('Name') + '-' + 
-                Rally.util.DateTime.formatDate(record.get('StartDate')) + '-' +
-                Rally.util.DateTime.formatDate(record.get('EndDate'));
+                Rally.util.DateTime.formatDate(record.get('ReleaseStartDate')) + '-' +
+                Rally.util.DateTime.formatDate(record.get('ReleaseDate'));
             }),
             modelNames = ['hierarchicalrequirement'],
             context = this.getContext();
 
-        var columns = _.sortBy(_.map(iterations, function(likeIterations) {
+        var columns = _.sortBy(_.map(releases, function(likeReleases) {
             return {
-                xtype: 'iterationcolumn',
-                iterations: likeIterations
+                xtype: 'releasecolumn',
+                releases: likeReleases
             };
-        }), function(column) { return column.iterations[0].get('StartDate'); });
+        }), function(column) { return column.releases[0].get('ReleaseStartDate'); });
 
         if (this.down('rallygridboard')) {
             this.down('rallygridboard').destroy();
@@ -261,21 +254,30 @@
                 ],
                 readOnly: true,
                 rowConfig: {
-                    field: 'Project'
+                    field: 'Feature'
                 },
                 columns: columns,
-                attribute: 'Iteration'
+                attribute: 'Release'
             },
             storeConfig: {
-               fetch: ['Iteration', 'Name', 'StartDate', 'EndDate'] 
+               fetch: ['Release', 'Name', 'ReleaseStartDate', 'ReleaseDate'],
+               filters: this._getFilters()
             }
         });
+    },
+
+    _getFilters: function() {
+        var queries = [];
+        if (this.getSetting('query')) {
+            queries.push(Rally.data.QueryFilter.fromQueryString(this.getSetting('query')));
+        }
+        return queries;
     }
 });
 
 
             Rally.launchApp('CustomApp', {
-                name:"StoryReleaseTracking",
+                name:"StoryReleaseTrackingByFeature",
                 parentRepos:"",
                 version:"0.1.3"
             });
