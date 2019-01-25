@@ -1,3 +1,5 @@
+var LOWEST_LEVEL_PI_NAME = 'Feature';
+
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
@@ -99,7 +101,8 @@ Ext.define('CustomApp', {
                     headerPosition: 'left',
                     modelNames: modelNames,
                     stateful: true,
-                    stateId: context.getScopedStateId('columns-example')
+                    stateId: context.getScopedStateId('columns-example'),
+                    boardAlwaysSelectedValues: ['ScheduleState']
                 },
                 {
                     ptype: 'rallygridboardactionsmenu',
@@ -125,10 +128,27 @@ Ext.define('CustomApp', {
                 ],
                 readOnly: true,
                 rowConfig: {
-                    field: 'Feature'
+                    field: LOWEST_LEVEL_PI_NAME,
+                    sorters: [
+                        {
+                            property: LOWEST_LEVEL_PI_NAME + '.' + this._getRankField(),
+                            direction: 'ASC'
+                        },
+                        {
+                            property: this._getRankField(),
+                            direction: 'ASC'
+                        }
+                    ],
+                    /*headerConfig: {
+                        xtype: 'rallytaskboardrowheader'
+                    },*/
+                    sortField: this._getRankField(),
                 },
                 columns: columns,
-                attribute: 'Release'
+                attribute: 'Release',
+                columnConfig: {
+                    fields: ['ScheduleState']
+                }
             },
             storeConfig: {
                fetch: ['Release', 'Name', 'ReleaseStartDate', 'ReleaseDate'],
@@ -143,5 +163,11 @@ Ext.define('CustomApp', {
             queries.push(Rally.data.QueryFilter.fromQueryString(this.getSetting('query')));
         }
         return queries;
+    },
+
+    _getRankField: function() {
+        return this.getContext().getWorkspace().WorkspaceConfiguration.DragDropRankingEnabled ?
+            Rally.data.Ranker.RANK_FIELDS.DND :
+            Rally.data.Ranker.RANK_FIELDS.MANUAL;
     }
 });
