@@ -143,12 +143,10 @@ Ext.define('CustomApp', {
                         xtype: 'rallytaskboardrowheader'
                     },*/
                     sortField: this._getRankField(),
+                    sortDirection: 'ASC'
                 },
                 columns: columns,
-                attribute: 'Release',
-                columnConfig: {
-                    fields: ['ScheduleState']
-                }
+                attribute: 'Release'
             },
             storeConfig: {
                fetch: ['Release', 'Name', 'ReleaseStartDate', 'ReleaseDate'],
