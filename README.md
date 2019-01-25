@@ -5,8 +5,7 @@ Release Tracking By Feature (Stories)
 This is a simple board view that shows stories spread across releases and features. 
 It has filtering capability, field picker to determine what fields show on the cards, and printing.
 
-## Screenshots
-(coming soon)
+![](screenshot.png)
 
 ## License
 
